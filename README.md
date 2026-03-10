@@ -32,3 +32,10 @@ Important Note: Run MongoDB Service commands first.
 # Scale Worker Count on Heroku
 
 heroku scale worker=10 -a gradebook-web-api
+## Frontend (GitHub Pages)
+
+A static frontend is available in `frontend/`.
+
+- Configure your backend URL directly in the UI.
+- Deploy using the provided workflow: `.github/workflows/deploy-frontend.yml`.
+- For local frontend preview: `cd frontend && python3 -m http.server 4173`.
