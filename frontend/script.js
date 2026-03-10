@@ -4,141 +4,244 @@ const STORAGE_KEYS = {
   userId: 'gradebook_user_id',
 };
 
-const outputEl = document.getElementById('output');
-const apiBaseInput = document.getElementById('apiBaseUrl');
-const loginForm = document.getElementById('loginForm');
+const els = {
+  apiBaseUrl: document.getElementById('apiBaseUrl'),
+  loginForm: document.getElementById('loginForm'),
+  output: document.getElementById('output'),
+  status: document.getElementById('status'),
+  districtList: document.getElementById('districtList'),
+  schoolDistrict: document.getElementById('schoolDistrict'),
+};
 
-const pretty = (value) => JSON.stringify(value, null, 2);
+const toPrettyJson = (value) => JSON.stringify(value, null, 2);
+
+function setStatus(message, tone = 'neutral') {
+  els.status.textContent = message;
+  els.status.className = `status ${tone}`;
+}
 
 function setOutput(title, payload) {
-  outputEl.textContent = `${title}\n\n${typeof payload === 'string' ? payload : pretty(payload)}`;
+  const body = typeof payload === 'string' ? payload : toPrettyJson(payload);
+  els.output.textContent = `${title}\n\n${body}`;
+}
+
+function getSavedApiBaseUrl() {
+  return localStorage.getItem(STORAGE_KEYS.apiBaseUrl) || '';
+}
+
+function setApiBaseUrl(value) {
+  const normalized = value.trim().replace(/\/$/, '');
+  if (!normalized) {
+    throw new Error('Please set an API Base URL first.');
+  }
+  localStorage.setItem(STORAGE_KEYS.apiBaseUrl, normalized);
+  return normalized;
 }
 
 function getApiBaseUrl() {
-  const value = apiBaseInput.value.trim().replace(/\/$/, '');
-  if (!value) {
-    throw new Error('Please set an API Base URL first.');
+  const current = els.apiBaseUrl.value.trim();
+  if (current) {
+    return setApiBaseUrl(current);
   }
-  localStorage.setItem(STORAGE_KEYS.apiBaseUrl, value);
-  return value;
+  const saved = getSavedApiBaseUrl();
+  if (!saved) {
+    throw new Error('Missing API Base URL.');
+  }
+  return saved;
 }
 
 async function apiRequest(path, options = {}) {
-  const base = getApiBaseUrl();
+  const baseUrl = getApiBaseUrl();
   const token = localStorage.getItem(STORAGE_KEYS.accessToken);
+  const { skipAuth = false, ...requestOptions } = options;
 
   const headers = {
     'Content-Type': 'application/json',
-    ...(options.headers || {}),
+    ...(requestOptions.headers || {}),
   };
 
-  if (token) {
+  if (token && !skipAuth) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(`${base}${path}`, {
-    ...options,
+  const response = await fetch(`${baseUrl}${path}`, {
+    ...requestOptions,
     headers,
   });
 
   const text = await response.text();
-  let data;
+  let body = {};
   try {
-    data = text ? JSON.parse(text) : {};
+    body = text ? JSON.parse(text) : {};
   } catch (_error) {
-    data = { raw: text };
+    body = { raw: text };
   }
 
   if (!response.ok) {
-    throw new Error(`HTTP ${response.status}: ${pretty(data)}`);
+    throw new Error(`HTTP ${response.status}: ${toPrettyJson(body)}`);
   }
 
-  return data;
+  return body;
 }
 
-loginForm.addEventListener('submit', async (event) => {
+function saveSessionFromLogin(loginResponse) {
+  if (loginResponse.accessToken) {
+    localStorage.setItem(STORAGE_KEYS.accessToken, loginResponse.accessToken);
+  }
+  if (loginResponse.user?._id) {
+    localStorage.setItem(STORAGE_KEYS.userId, loginResponse.user._id);
+  }
+}
+
+function clearSession() {
+  localStorage.removeItem(STORAGE_KEYS.accessToken);
+  localStorage.removeItem(STORAGE_KEYS.userId);
+}
+
+function renderDistricts(districts) {
+  els.districtList.innerHTML = '';
+  districts.forEach((district) => {
+    const option = document.createElement('option');
+    option.value = district;
+    els.districtList.appendChild(option);
+  });
+
+  if (districts.length > 0 && !els.schoolDistrict.value.trim()) {
+    [els.schoolDistrict.value] = districts;
+  }
+}
+
+async function withUiFeedback(actionLabel, fn) {
+  try {
+    setStatus(`${actionLabel}...`, 'working');
+    const result = await fn();
+    setStatus(`${actionLabel} completed.`, 'ok');
+    return result;
+  } catch (error) {
+    setStatus(`${actionLabel} failed.`, 'error');
+    setOutput(`${actionLabel} failed`, error.message);
+    throw error;
+  }
+}
+
+async function handleLoadDistricts() {
+  const data = await withUiFeedback('Load districts', () =>
+    apiRequest('/auth/districts', { method: 'GET', skipAuth: true })
+  );
+
+  const districts = Array.isArray(data.districts) ? data.districts : [];
+  renderDistricts(districts);
+  setOutput('Supported districts', { districts });
+}
+
+async function handleLogin(event) {
   event.preventDefault();
-  try {
-    const body = {
-      userId: document.getElementById('userId').value.trim(),
-      pass: document.getElementById('password').value,
-      schoolDistrict: document.getElementById('schoolDistrict').value.trim(),
-    };
 
-    const data = await apiRequest('/auth/login', {
+  const payload = {
+    userId: document.getElementById('userId').value.trim(),
+    pass: document.getElementById('password').value,
+    schoolDistrict: els.schoolDistrict.value.trim(),
+  };
+
+  const data = await withUiFeedback('Login', () =>
+    apiRequest('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(body),
-    });
+      body: JSON.stringify(payload),
+    })
+  );
 
-    if (data.accessToken) {
-      localStorage.setItem(STORAGE_KEYS.accessToken, data.accessToken);
-    }
+  saveSessionFromLogin(data);
+  setOutput('Login success', data);
+}
 
-    if (data.user?._id) {
-      localStorage.setItem(STORAGE_KEYS.userId, data.user._id);
-    }
+async function handleHealthCheck() {
+  const data = await withUiFeedback('Connection test', () =>
+    apiRequest('/', { method: 'GET', skipAuth: true })
+  );
+  setOutput('Connection test result', data);
+}
 
-    setOutput('Login success', data);
-  } catch (error) {
-    setOutput('Login failed', error.message);
+async function handleEndpointFetch(path) {
+  const data = await withUiFeedback(`Fetch ${path}`, () =>
+    apiRequest(path, { method: 'GET' })
+  );
+  setOutput(`Response: ${path}`, data);
+}
+
+async function handleLogout() {
+  const userId = localStorage.getItem(STORAGE_KEYS.userId);
+  if (!userId) {
+    throw new Error('No user ID found in local session. Login first.');
   }
-});
 
-document.getElementById('loadAccountBtn').addEventListener('click', async () => {
-  try {
-    const data = await apiRequest('/user/account');
-    setOutput('Account', data);
-  } catch (error) {
-    setOutput('Load account failed', error.message);
-  }
-});
-
-document.getElementById('loadGradesBtn').addEventListener('click', async () => {
-  try {
-    const data = await apiRequest('/grades');
-    setOutput('Grades', data);
-  } catch (error) {
-    setOutput('Load grades failed', error.message);
-  }
-});
-
-document.getElementById('loadGpaBtn').addEventListener('click', async () => {
-  try {
-    const data = await apiRequest('/grades/gpa');
-    setOutput('GPA', data);
-  } catch (error) {
-    setOutput('Load GPA failed', error.message);
-  }
-});
-
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-  try {
-    const userId = localStorage.getItem(STORAGE_KEYS.userId);
-    if (!userId) {
-      throw new Error('No userId in local storage. Log in first.');
-    }
-
-    const data = await apiRequest('/auth/logout', {
+  const data = await withUiFeedback('Logout', () =>
+    apiRequest('/auth/logout', {
       method: 'POST',
       body: JSON.stringify({ userId }),
-    });
+    })
+  );
 
-    localStorage.removeItem(STORAGE_KEYS.accessToken);
-    setOutput('Logged out', data);
-  } catch (error) {
-    setOutput('Logout failed', error.message);
-  }
-});
+  clearSession();
+  setOutput('Logged out', data);
+}
+
+function setupEvents() {
+  document.getElementById('saveBaseUrlBtn').addEventListener('click', () => {
+    try {
+      const value = setApiBaseUrl(els.apiBaseUrl.value);
+      setStatus('API URL saved.', 'ok');
+      setOutput('Saved API URL', value);
+    } catch (error) {
+      setStatus('Failed to save API URL.', 'error');
+      setOutput('Save API URL failed', error.message);
+    }
+  });
+
+  document.getElementById('healthCheckBtn').addEventListener('click', () => {
+    handleHealthCheck().catch(() => {});
+  });
+
+  document.getElementById('loadDistrictsBtn').addEventListener('click', () => {
+    handleLoadDistricts().catch(() => {});
+  });
+
+  els.loginForm.addEventListener('submit', (event) => {
+    handleLogin(event).catch(() => {});
+  });
+
+  document.querySelectorAll('.endpointBtn').forEach((button) => {
+    button.addEventListener('click', () => {
+      handleEndpointFetch(button.dataset.endpoint).catch(() => {});
+    });
+  });
+
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    handleLogout().catch((error) => {
+      setStatus('Logout failed.', 'error');
+      setOutput('Logout failed', error.message);
+    });
+  });
+
+  document.getElementById('clearSessionBtn').addEventListener('click', () => {
+    clearSession();
+    setStatus('Local session cleared.', 'ok');
+    setOutput('Local session', 'Access token and user ID removed from localStorage.');
+  });
+}
 
 function init() {
-  const savedBaseUrl = localStorage.getItem(STORAGE_KEYS.apiBaseUrl);
+  const savedBaseUrl = getSavedApiBaseUrl();
   if (savedBaseUrl) {
-    apiBaseInput.value = savedBaseUrl;
+    els.apiBaseUrl.value = savedBaseUrl;
   }
+
+  setStatus('Ready.', 'ok');
   setOutput(
     'Ready',
-    'Configure API Base URL, then log in. This app is static and can be hosted on GitHub Pages.'
+    'Set your API URL, run Test connection, use Find districts, then login.'
   );
+
+  setupEvents();
 }
 
 init();

@@ -3,26 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gradebook Client</title>
+    <title>Gradebook Web Client</title>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
-    <main class="container">
-      <h1>Gradebook Client</h1>
-      <p class="subtitle">Static frontend for the Gradebook API (GitHub Pages compatible).</p>
+    <main class="layout">
+      <header class="hero card">
+        <h1>Gradebook Web Client</h1>
+        <p>A static frontend designed for GitHub Pages.</p>
+      </header>
 
       <section class="card">
-        <h2>Backend Settings</h2>
+        <h2>1) Connect to Backend</h2>
         <label>
           API Base URL
           <input id="apiBaseUrl" type="url" placeholder="https://your-api.example.com" />
         </label>
-        <p class="hint">Saved in localStorage so you only set it once.</p>
+        <div class="actions">
+          <button id="saveBaseUrlBtn">Save API URL</button>
+          <button id="healthCheckBtn" class="secondary">Test connection</button>
+        </div>
       </section>
 
       <section class="card">
-        <h2>Login</h2>
-        <form id="loginForm">
+        <h2>2) Login</h2>
+        <form id="loginForm" class="stack">
           <label>
             Email / User ID
             <input id="userId" required />
@@ -33,24 +38,35 @@
           </label>
           <label>
             School District
-            <input id="schoolDistrict" placeholder="fortlee" required />
+            <input id="schoolDistrict" list="districtList" placeholder="sbstudents.org" required />
+            <datalist id="districtList"></datalist>
           </label>
-          <button type="submit">Login</button>
+          <div class="actions">
+            <button type="button" id="loadDistrictsBtn" class="secondary">Find districts</button>
+            <button type="submit">Login</button>
+          </div>
         </form>
+        <p class="hint">If your district is not listed, your backend must add it in <code>constants/genesis.py</code>.</p>
       </section>
 
       <section class="card">
-        <h2>Session</h2>
+        <h2>3) Fetch Data</h2>
         <div class="actions">
-          <button id="loadAccountBtn">Load Account</button>
-          <button id="loadGradesBtn">Load Grades</button>
-          <button id="loadGpaBtn">Load GPA</button>
-          <button id="logoutBtn" class="secondary">Logout</button>
+          <button data-endpoint="/user/account" class="endpointBtn">Account</button>
+          <button data-endpoint="/grades" class="endpointBtn">Grades</button>
+          <button data-endpoint="/grades/gpa" class="endpointBtn">GPA</button>
+          <button id="logoutBtn" class="danger">Logout</button>
+          <button id="clearSessionBtn" class="secondary">Clear local session</button>
         </div>
       </section>
 
       <section class="card">
-        <h2>Response</h2>
+        <h2>Status</h2>
+        <div id="status" class="status">Ready.</div>
+      </section>
+
+      <section class="card">
+        <h2>Last API Response</h2>
         <pre id="output">No request made yet.</pre>
       </section>
     </main>

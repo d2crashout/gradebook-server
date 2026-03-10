@@ -1,6 +1,6 @@
 :root {
-  color-scheme: light;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color-scheme: light;
 }
 
 * {
@@ -13,19 +13,10 @@ body {
   color: #1d283a;
 }
 
-.container {
-  max-width: 800px;
+.layout {
+  max-width: 860px;
   margin: 2rem auto;
   padding: 0 1rem 2rem;
-}
-
-h1 {
-  margin-bottom: 0.25rem;
-}
-
-.subtitle {
-  margin-top: 0;
-  color: #56637a;
 }
 
 .card {
@@ -36,9 +27,25 @@ h1 {
   margin-bottom: 1rem;
 }
 
+.hero h1 {
+  margin: 0 0 0.25rem;
+}
+
+.hero p {
+  margin: 0;
+  color: #53627d;
+}
+
+h2 {
+  margin-top: 0;
+}
+
+.stack {
+  display: grid;
+  gap: 0.65rem;
+}
+
 label {
-  display: block;
-  margin-bottom: 0.75rem;
   font-weight: 600;
 }
 
@@ -49,6 +56,13 @@ input {
   border: 1px solid #c7d1e3;
   border-radius: 8px;
   font-size: 1rem;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
 }
 
 button {
@@ -62,19 +76,39 @@ button {
 }
 
 button.secondary {
-  background: #7a869a;
+  background: #6a778d;
 }
 
-.actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+button.danger {
+  background: #cc2936;
 }
 
 .hint {
-  margin: 0;
-  color: #56637a;
-  font-size: 0.9rem;
+  margin: 0.75rem 0 0;
+  color: #53627d;
+}
+
+.status {
+  border-radius: 8px;
+  padding: 0.65rem 0.8rem;
+  background: #eef2fa;
+  color: #33435f;
+  font-weight: 600;
+}
+
+.status.working {
+  background: #fff4dd;
+  color: #7b5706;
+}
+
+.status.ok {
+  background: #e7f7ef;
+  color: #196a3d;
+}
+
+.status.error {
+  background: #fde7ea;
+  color: #8f1f2d;
 }
 
 pre {
@@ -83,5 +117,5 @@ pre {
   border-radius: 8px;
   padding: 0.8rem;
   overflow: auto;
-  min-height: 180px;
+  min-height: 200px;
 }
