@@ -37,6 +37,5 @@ heroku scale worker=10 -a gradebook-web-api
 A static frontend is available in `frontend/`.
 
 - Configure your backend URL directly in the UI.
-- Use **Find districts** on the login form to list valid `schoolDistrict` values from the backend.
 - Deploy using the provided workflow: `.github/workflows/deploy-frontend.yml`.
 - For local frontend preview: `cd frontend && python3 -m http.server 4173`.

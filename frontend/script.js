@@ -7,16 +7,6 @@ const STORAGE_KEYS = {
 const outputEl = document.getElementById('output');
 const apiBaseInput = document.getElementById('apiBaseUrl');
 const loginForm = document.getElementById('loginForm');
-const districtListEl = document.getElementById('districtList');
-
-function renderDistricts(districts) {
-  districtListEl.innerHTML = '';
-  districts.forEach((district) => {
-    const option = document.createElement('option');
-    option.value = district;
-    districtListEl.appendChild(option);
-  });
-}
 
 const pretty = (value) => JSON.stringify(value, null, 2);
 
@@ -42,14 +32,12 @@ async function apiRequest(path, options = {}) {
     ...(options.headers || {}),
   };
 
-  if (token && !options.skipAuth) {
+  if (token) {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const { skipAuth: _skipAuth, ...requestOptions } = options;
-
   const response = await fetch(`${base}${path}`, {
-    ...requestOptions,
+    ...options,
     headers,
   });
 
@@ -142,27 +130,6 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
   }
 });
 
-
-document.getElementById('loadDistrictsBtn').addEventListener('click', async () => {
-  try {
-    const data = await apiRequest('/auth/districts', {
-      method: 'GET',
-      skipAuth: true,
-    });
-
-    const districts = data.districts || [];
-    renderDistricts(districts);
-    setOutput('Supported districts', { districts });
-  } catch (error) {
-    setOutput(
-      'Load districts failed',
-      `${error.message}
-
-Tip: If your district is missing, the backend must add it in constants/genesis.py.`
-    );
-  }
-});
-
 function init() {
   const savedBaseUrl = localStorage.getItem(STORAGE_KEYS.apiBaseUrl);
   if (savedBaseUrl) {
@@ -170,7 +137,7 @@ function init() {
   }
   setOutput(
     'Ready',
-    'Configure API Base URL, click Find districts if needed, then log in. This app is static and can be hosted on GitHub Pages.'
+    'Configure API Base URL, then log in. This app is static and can be hosted on GitHub Pages.'
   );
 }
 
