@@ -1,10 +1,18 @@
 from flask import Blueprint
 from modules.auth.auth_service import AuthService
 from utils.request_tools import body, genesisId
+from constants.genesis import genesis_config
 import asyncio
 
 auth = Blueprint("auth", __name__)
 auth_service = AuthService()
+
+
+@auth.route("/auth/districts", methods=["GET"])
+def districts():
+    return {
+        "districts": sorted(genesis_config.keys()),
+    }
 
 
 @auth.route("/auth/login", methods=["POST"])

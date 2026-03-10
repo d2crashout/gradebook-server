@@ -16,6 +16,14 @@ app.register_blueprint(user_blueprint)
 schedule_grade_persisting()
 
 
+@app.after_request
+def add_cors_headers(response):
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+    return response
+
+
 @app.route("/", methods=["POST"])
 def home2():
     print(request.headers["User-Agent"])
@@ -25,6 +33,11 @@ def home2():
 @app.route("/", methods=["GET"])
 def home():
     return "All Systems Operational."
+
+
+@app.route("/<path:_path>", methods=["OPTIONS"])
+def options(_path):
+    return "", 204
 
 
 if __name__ == "__main__":
