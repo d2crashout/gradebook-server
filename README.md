@@ -32,3 +32,28 @@ Important Note: Run MongoDB Service commands first.
 # Scale Worker Count on Heroku
 
 heroku scale worker=10 -a gradebook-web-api
+## Frontend (GitHub Pages)
+
+A static frontend is available in `frontend/`.
+
+- Configure your backend URL directly in the UI.
+- Use **Find districts** on the login form to list valid `schoolDistrict` values from the backend.
+- Deploy using the provided workflow: `.github/workflows/deploy-frontend.yml`.
+- For local frontend preview: `cd frontend && python3 -m http.server 4173`.
+
+
+### Merge conflict quick fix
+
+```bash
+git fetch origin
+git checkout <your-branch>
+git merge origin/main
+```
+
+Resolve conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) in files, then:
+
+```bash
+git add <resolved-files>
+git commit
+git push
+```
