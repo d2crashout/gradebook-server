@@ -1,4 +1,4 @@
-# About 
+# About  
 
 API that powers Gradebook / Genesus App
 
